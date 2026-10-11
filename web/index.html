@@ -25,16 +25,19 @@
     #board button:enabled { cursor: pointer; }
     #board button.win { background: var(--tg-theme-button-color, #2481cc); }
     #status { margin-top: 20px; min-height: 1.4em; color: var(--tg-theme-hint-color, #888); }
+    #results { margin-top: 8px; font-size: 14px; color: var(--tg-theme-hint-color, #888); }
   </style>
 </head>
 <body>
   <h1>❌ you vs ⭕ bot</h1>
   <div id="board"></div>
   <p id="status">Loading…</p>
+  <p id="results"></p>
   <script>
     const tg = Telegram.WebApp;
     const board = document.getElementById('board');
     const status = document.getElementById('status');
+    const results = document.getElementById('results');
     const MARKS = { X: '❌', O: '⭕', '.': '' };
     const RESULTS = { X: 'You won 🎉', O: 'Bot wins 🤖', draw: 'Draw 🤝' };
 
@@ -78,11 +81,20 @@
       return ok;
     }
 
+    // Errors are ignored: the line just keeps its old text.
+    async function loadResults() {
+      try {
+        const r = await call('getResults', {});
+        results.textContent = r.last.length ? `Last ${r.last.length}: 🎉 ${r.won} · 🤖 ${r.lost} · 🤝 ${r.draw}` : '';
+      } catch {}
+    }
+
     async function move(cell) {
       tg.HapticFeedback.impactOccurred('light');
       game.board = game.board.slice(0, cell) + 'X' + game.board.slice(cell + 1); // shown until the server answers
       // On error our board is stale (e.g. the cell was taken in chat): fetch the real one.
       if (!(await load('move', { id: game.id, cell }))) await load('getGame', { id: game.id });
+      else if (game.outcome) loadResults();
     }
 
     if (!tg.initData) {
@@ -93,6 +105,7 @@
       tg.MainButton.setText('🔄 New game').onClick(() => load('newGame', {})).show();
       const id = Number(new URLSearchParams(location.search).get('game')) || undefined;
       load('getGame', { id });
+      loadResults();
     }
   </script>
 </body>
