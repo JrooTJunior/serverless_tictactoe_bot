@@ -1,0 +1,19 @@
+{
+  "name": "serverless_tictactoe_bot",
+  "private": true,
+  "devDependencies": {
+    "@aiogram/tgcloud-grammy": "^0.3.0",
+    "@tgcloud/cli": "^0.2.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "grammy": "^1.46.0"
+  },
+  "scripts": {
+    "deploy": "tsc && tgcloud-grammy build && tgcloud push",
+    "status": "tgcloud-grammy build && tgcloud status",
+    "run": "tgcloud-grammy build && tgcloud run",
+    "build": "tgcloud-grammy build",
+    "typecheck": "tsc"
+  }
+}
