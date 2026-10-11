@@ -13,15 +13,15 @@ A Tic Tac Toe bot that demos the Telegram Serverless Platform (tgcloud). It has 
 
 Both modes should share game state and rules through `src/lib/` and the database (`src/schema.ts`), not keep their own copies.
 
-Current state: both modes play against the computer and share the same `games` rows (any number of games at once). `/start` sets the chat's menu button to the Mini App; each in-chat game message has a "📱 Mini App" button opening that game (`?game=<id>`; private chats only). Opening the Mini App without `?game` resumes the user's latest game. A chat message isn't edited when the game moves on in the Mini App; it catches up on the next tap.
+Current state: both modes play against the computer and share the same `games` rows (any number of games at once). `/start` sets the chat's menu button to the Mini App; each in-chat game message has a "📱 Mini App" button opening that game (`?game=<id>`; private chats only). Opening the Mini App without `?game` resumes the user's latest game. Each game remembers its chat message (`games.chat_id`/`message_id`); when `getGame` opens a game in the Mini App, that message is edited to drop the board ("continues in the Mini App"), so a stale board can't be played.
 
 ## `src/lib/` layout
 
 - `game/`: the game itself. `rules.ts` (pure board logic), `ai.ts` (minimax bot), `store.ts` (DB access; `saveBoard` is a compare-and-swap on the board, so concurrent moves can't overwrite each other), `turn.ts` (`playTurn`: player move + bot reply, used by both UIs).
-- `chat/`: the in-chat UI. `render.ts` (game → rich message: table board, emoji, callback buttons in cells; holds `MINI_APP_URL`), `play.ts` (grammY `Composer` with the commands/callbacks).
+- `chat/`: the in-chat UI. `render.ts` (game → rich message: table board, emoji, callback buttons in cells; holds `MINI_APP_URL`), `play.ts` (grammY `Composer` with the commands/callbacks), `handoff.ts` (`hideChatBoard`, called by the `getGame` endpoint).
 - `bot.ts`: only `createBot()` plus `bot.use(<feature>)` for each feature Composer.
 
-Rule: `game/` never imports grammY, `chat/`, or Telegram types. UIs (`chat/`, `src/endpoints/`) import `game/`, never each other. A new UI or feature is new files plus one `bot.use(...)` line.
+Rule: `game/` never imports grammY, `chat/`, or Telegram types. UIs (`chat/`, `src/endpoints/`) import `game/`, never each other, with one exception: endpoints call `chat/handoff.ts` to hide a game's chat message. A new UI or feature is new files plus one `bot.use(...)` line.
 
 ## Commands
 

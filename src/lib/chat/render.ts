@@ -27,12 +27,25 @@ export function render(game: Game, privateChat: boolean): InputRichMessage {
       { type: 'heading', size: 3, text: 'Tic Tac Toe: ❌ you vs ⭕ bot' },
       { type: 'table', is_bordered: true, cells: [cells.slice(0, 3), cells.slice(3, 6), cells.slice(6)] },
       { type: 'footer', text: result ? STATUS[result.winner] : 'Your move' },
-      {
-        type: 'buttons', align: 'center', buttons: [
-          { text: '🔄 New game', callback_data: NEW_GAME },
-          ...(privateChat ? [{ text: '📱 Mini App', web_app: { url: `${MINI_APP_URL}?game=${game.id}` } }] : []),
-        ],
-      },
+      { type: 'buttons', align: 'center', buttons: newGameButtons(game.id, privateChat) },
     ],
   };
+}
+
+/** What a game's chat message becomes once the game is opened in the Mini App. */
+export function renderMoved(gameId: number, privateChat: boolean): InputRichMessage {
+  return {
+    blocks: [
+      { type: 'heading', size: 3, text: 'Tic Tac Toe: ❌ you vs ⭕ bot' },
+      { type: 'footer', text: 'This game continues in the Mini App 📱' },
+      { type: 'buttons', align: 'center', buttons: newGameButtons(gameId, privateChat) },
+    ],
+  };
+}
+
+function newGameButtons(gameId: number, privateChat: boolean) {
+  return [
+    { text: '🔄 New game', callback_data: NEW_GAME },
+    ...(privateChat ? [{ text: '📱 Mini App', web_app: { url: `${MINI_APP_URL}?game=${gameId}` } }] : []),
+  ];
 }
