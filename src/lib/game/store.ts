@@ -15,7 +15,6 @@ export function getGame(id: number): Promise<Game | null> {
   return db.select().from(games).where(eq(games.id, id)).get();
 }
 
-// ponytail: full scan by user_id; add an index on games.user_id if the table grows.
 export function latestGame(userId: number): Promise<Game | null> {
   return db.select().from(games).where(eq(games.userId, userId)).orderBy(desc(games.id)).limit(1).get();
 }
