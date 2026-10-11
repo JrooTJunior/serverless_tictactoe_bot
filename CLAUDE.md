@@ -9,16 +9,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A Tic Tac Toe bot that demos the Telegram Serverless Platform (tgcloud). It has two ways to play:
 
 - **In-chat mode**: the game is played inside the chat with rich messages (Bot API `sendRichMessage`; the message is edited on each move), driven by `callback_query` updates.
-- **Mini App**: a front-end hosted by the platform (`tgcloud.jsonc` → `"static"`) that talks to the bot only through `src/endpoints/*`.
+- **Mini App**: `web/index.html` (plain HTML+JS, no build step), hosted by the platform (`tgcloud.jsonc` → `"static": "web"`) at `https://app8707147695.tgcloud.ai/`. It talks to the bot only through `src/endpoints/*` (`getGame`, `newGame`, `move`) via `Telegram.WebApp.Serverless.call`. The server owns the board; the page has no game rules.
 
 Both modes should share game state and rules through `src/lib/` and the database (`src/schema.ts`), not keep their own copies.
 
-Current state: in-chat play against the computer works (`/play`; any number of games at once, one `games` row each). No Mini App front-end yet (the `static` block in `tgcloud.jsonc` is commented out).
+Current state: both modes play against the computer and share the same `games` rows (any number of games at once). `/start` sets the chat's menu button to the Mini App; each in-chat game message has a "📱 Mini App" button opening that game (`?game=<id>`; private chats only). Opening the Mini App without `?game` resumes the user's latest game. A chat message isn't edited when the game moves on in the Mini App; it catches up on the next tap.
 
 ## `src/lib/` layout
 
-- `game/`: the game itself. `rules.ts` (pure board logic), `ai.ts` (minimax bot), `store.ts` (DB access; `saveBoard` is a compare-and-swap on the board, so concurrent moves can't overwrite each other).
-- `chat/`: the in-chat UI. `render.ts` (game → rich message: table board, emoji, callback buttons in cells), `play.ts` (grammY `Composer` with the commands/callbacks).
+- `game/`: the game itself. `rules.ts` (pure board logic), `ai.ts` (minimax bot), `store.ts` (DB access; `saveBoard` is a compare-and-swap on the board, so concurrent moves can't overwrite each other), `turn.ts` (`playTurn`: player move + bot reply, used by both UIs).
+- `chat/`: the in-chat UI. `render.ts` (game → rich message: table board, emoji, callback buttons in cells; holds `MINI_APP_URL`), `play.ts` (grammY `Composer` with the commands/callbacks).
 - `bot.ts`: only `createBot()` plus `bot.use(<feature>)` for each feature Composer.
 
 Rule: `game/` never imports grammY, `chat/`, or Telegram types. UIs (`chat/`, `src/endpoints/`) import `game/`, never each other. A new UI or feature is new files plus one `bot.use(...)` line.
