@@ -8,16 +8,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Tic Tac Toe bot that demos the Telegram Serverless Platform (tgcloud). It has two ways to play:
 
-- **In-chat mode**: the game is played inside the chat with rich messages (inline keyboards edited on each move), driven by `callback_query` updates.
+- **In-chat mode**: the game is played inside the chat with rich messages (Bot API `sendRichMessage`; the message is edited on each move), driven by `callback_query` updates.
 - **Mini App**: a front-end hosted by the platform (`tgcloud.jsonc` → `"static"`) that talks to the bot only through `src/endpoints/*`.
 
 Both modes should share game state and rules through `src/lib/` and the database (`src/schema.ts`), not keep their own copies.
 
-Current state: grammY echo-bot scaffold. Only `src/handlers/message.ts` exists, `src/schema.ts` has no tables, and there is no Mini App front-end yet (the `static` block in `tgcloud.jsonc` is commented out).
+Current state: in-chat play against the computer works (`/play`; any number of games at once, one `games` row each). No Mini App front-end yet (the `static` block in `tgcloud.jsonc` is commented out).
+
+## `src/lib/` layout
+
+- `game/`: the game itself. `rules.ts` (pure board logic), `ai.ts` (minimax bot), `store.ts` (DB access; `saveBoard` is a compare-and-swap on the board, so concurrent moves can't overwrite each other).
+- `chat/`: the in-chat UI. `render.ts` (game → rich message: table board, emoji, callback buttons in cells), `play.ts` (grammY `Composer` with the commands/callbacks).
+- `bot.ts`: only `createBot()` plus `bot.use(<feature>)` for each feature Composer.
+
+Rule: `game/` never imports grammY, `chat/`, or Telegram types. UIs (`chat/`, `src/endpoints/`) import `game/`, never each other. A new UI or feature is new files plus one `bot.use(...)` line.
 
 ## Commands
 
-There is no test runner or linter. `npm run typecheck` is the static check. To exercise code, run a built module in the cloud without deploying it:
+There is no test runner or linter. `npm run typecheck` is the static check; `npm run check` runs the assert self-check in `src/lib/game/rules.check.ts` locally. To exercise code, run a built module in the cloud without deploying it:
 
 ```
 npm run run -- handlers/callback_query '{ id: "1", from: { id: 1, is_bot: false, first_name: "U" }, chat_instance: "1", data: "..." }'

@@ -14,6 +14,7 @@
     "status": "tgcloud-grammy build && tgcloud status",
     "run": "tgcloud-grammy build && tgcloud run",
     "build": "tgcloud-grammy build",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "check": "tsc --ignoreConfig src/lib/game/rules.check.ts --outDir node_modules/.check --module es2022 --moduleResolution bundler --target es2022 --skipLibCheck && node --experimental-detect-module node_modules/.check/rules.check.js"
   }
 }
