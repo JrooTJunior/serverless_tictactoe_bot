@@ -1,32 +1,28 @@
 // In-chat play against the bot.
 import { Composer } from 'grammy';
-import { botMove } from '../game/ai.js';
-import { applyMove, outcome } from '../game/rules.js';
-import { createGame, getGame, saveBoard } from '../game/store.js';
-import { MOVE, NEW_GAME, render } from './render.js';
+import { createGame } from '../game/store.js';
+import { playTurn, TURN_ERRORS } from '../game/turn.js';
+import { MINI_APP_URL, MOVE, NEW_GAME, render } from './render.js';
 
 export const play = new Composer();
 
 play.command(['start', 'play'], async (ctx) => {
   if (!ctx.from) return;
-  await ctx.replyWithRichMessage(render(await createGame(ctx.from.id)));
+  const privateChat = ctx.chat.type === 'private';
+  await ctx.replyWithRichMessage(render(await createGame(ctx.from.id), privateChat));
+  if (privateChat) {
+    await ctx.setChatMenuButton({ chat_id: ctx.chat.id, menu_button: { type: 'web_app', text: '🎮 Play', web_app: { url: MINI_APP_URL } } });
+  }
 });
 
 play.callbackQuery(NEW_GAME, async (ctx) => {
-  await ctx.replyWithRichMessage(render(await createGame(ctx.from.id)));
+  await ctx.replyWithRichMessage(render(await createGame(ctx.from.id), ctx.chat?.type === 'private'));
   await ctx.answerCallbackQuery();
 });
 
 play.callbackQuery(MOVE, async (ctx) => {
-  const game = await getGame(Number(ctx.match[1]));
-  if (!game) return ctx.answerCallbackQuery('Game not found');
-  if (game.userId !== ctx.from.id) return ctx.answerCallbackQuery('This is not your game');
-
-  let board = applyMove(game.board, Number(ctx.match[2]));
-  if (!board) return ctx.answerCallbackQuery('That cell is taken');
-  if (!outcome(board)) board = applyMove(board, botMove(board))!;
-
-  if (!(await saveBoard(game.id, game.board, board))) return ctx.answerCallbackQuery('Too fast, try again');
-  await ctx.editMessageText(render({ ...game, board }));
+  const turn = await playTurn(ctx.from.id, Number(ctx.match[1]), Number(ctx.match[2]));
+  if ('error' in turn) return ctx.answerCallbackQuery(TURN_ERRORS[turn.error]);
+  await ctx.editMessageText(render(turn.game, ctx.chat?.type === 'private'));
   await ctx.answerCallbackQuery();
 });
