@@ -1,11 +1,16 @@
 // The computer opponent.
 import { applyMove, emptyCells, outcome, type Board } from './rules.js';
 
-/** Best cell for the side to move: full minimax, random among equally good cells. */
-export function botMove(board: Board): number {
+// ponytail: one fixed difficulty; make it per-game if players ask for levels.
+const MISTAKE_CHANCE = 0.25;
+
+/** Cell for the side to move: usually full minimax (random among equally good cells), sometimes a random cell so the bot can be beaten. */
+export function botMove(board: Board, mistakeChance = MISTAKE_CHANCE): number {
+  const empty = emptyCells(board);
+  if (Math.random() < mistakeChance) return empty[Math.floor(Math.random() * empty.length)];
   let best = -Infinity;
   let cells: number[] = [];
-  for (const cell of emptyCells(board)) {
+  for (const cell of empty) {
     const score = -negamax(applyMove(board, cell)!);
     if (score > best) [best, cells] = [score, [cell]];
     else if (score === best) cells.push(cell);
