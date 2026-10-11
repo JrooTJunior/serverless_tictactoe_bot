@@ -2,7 +2,7 @@
 import { db } from 'sdk';
 import { and, desc, eq, type InferSelect } from 'sdk/db';
 import { games } from '../../schema.js';
-import { EMPTY_BOARD, type Board } from './rules.js';
+import { EMPTY_BOARD, tally, type Board, type Results } from './rules.js';
 
 export type Game = InferSelect<typeof games>;
 
@@ -17,6 +17,14 @@ export function getGame(id: number): Promise<Game | null> {
 
 export function latestGame(userId: number): Promise<Game | null> {
   return db.select().from(games).where(eq(games.userId, userId)).orderBy(desc(games.id)).limit(1).get();
+}
+
+/** The player's results over their last 20 finished games. */
+export async function recentResults(userId: number): Promise<Results> {
+  // ponytail: unfinished games share the 100-row window, so >80 abandoned ones shrink the 20; add a `finished` column if that shows up.
+  const rows = await db.select({ board: games.board }).from(games)
+    .where(eq(games.userId, userId)).orderBy(desc(games.id)).limit(100).all();
+  return tally(rows.map((r) => r.board), 20);
 }
 
 /** Saves `to` only if the board is still `from`. false: another move got in first. */

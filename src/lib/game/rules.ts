@@ -38,3 +38,12 @@ export function applyMove(board: Board, cell: number): Board | null {
   if (!Number.isInteger(cell) || board[cell] !== '.' || outcome(board)) return null;
   return board.slice(0, cell) + whoseTurn(board) + board.slice(cell + 1);
 }
+
+export type Results = { won: number; lost: number; draw: number; last: (Mark | 'draw')[] };
+
+/** Results of the first `limit` finished games among `boards` (newest first), from the player's (X) side. */
+export function tally(boards: Board[], limit: number): Results {
+  const last = boards.flatMap((b) => outcome(b)?.winner ?? []).slice(0, limit);
+  const count = (w: Mark | 'draw') => last.filter((x) => x === w).length;
+  return { won: count('X'), lost: count('O'), draw: count('draw'), last };
+}
